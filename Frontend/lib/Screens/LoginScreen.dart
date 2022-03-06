@@ -1,17 +1,20 @@
 // ignore_for_file: file_names, prefer_const_constructors, prefer_const_literals_to_create_immutables
 import 'dart:convert';
-import 'package:cosines_for_everyone/ClipPaths/HomeClipContainer.dart';
-import 'package:cosines_for_everyone/Networking/LoginAndSignup.dart';
-import 'package:cosines_for_everyone/Providers/Settings.dart';
-import 'package:cosines_for_everyone/Screens/HomeScreen.dart';
-import 'package:cosines_for_everyone/Screens/SignupScreen.dart';
-import 'package:cosines_for_everyone/SharedWidgets/SharedTextWidgets.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:version2/ClipPaths/HomeClipContainer.dart';
+import 'package:version2/Networking/LoginAndSignup.dart';
+import 'package:version2/Providers/Settings.dart';
+import 'package:version2/SharedWidgets/SharedTextWidgets.dart';
+
+import 'HomeScreen.dart';
+import 'SignupScreen.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }

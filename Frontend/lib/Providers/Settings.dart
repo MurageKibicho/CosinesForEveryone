@@ -8,6 +8,7 @@ class Settings extends ChangeNotifier
   String _accountBalance = " ";
   String _email = " ";
   String _accountNumber = " ";
+  bool _showCase = false;
 
   get accountBalance => _accountBalance;
   set accountBalance(value){
@@ -18,6 +19,18 @@ class Settings extends ChangeNotifier
   void setAccountBalance(String result)
   {
     accountBalance = result;
+    notifyListeners();
+  }
+
+  get showCase => _showCase;
+  set showCase(value){
+    _showCase = value;
+    notifyListeners();
+  }
+
+  void setShowcase(bool result)
+  {
+    showCase = result;
     notifyListeners();
   }
 

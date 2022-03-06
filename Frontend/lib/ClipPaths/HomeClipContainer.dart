@@ -2,8 +2,9 @@
 import 'package:google_fonts/google_fonts.dart';
 
 import 'dart:math';
-import 'package:cosines_for_everyone/ClipPaths/HomeClipPath.dart';
 import 'package:flutter/material.dart';
+
+import 'HomeClipPath.dart';
 
 class HomeClipContainer extends StatefulWidget {
   final double height;

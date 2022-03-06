@@ -1,9 +1,11 @@
 // ignore_for_file: file_names, use_key_in_widget_constructors, prefer_const_constructors, sized_box_for_whitespace, prefer_const_literals_to_create_immutables, non_constant_identifier_names
 
-import 'package:cosines_for_everyone/SharedWidgets/SharedTextWidgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:version2/SharedWidgets/SharedTextWidgets.dart';
 
+import '../Providers/Settings.dart';
 import 'HomeScreen.dart';
 import 'SignupScreen.dart';
 
@@ -17,6 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final settingsClass = Provider.of<Settings>(context);
     return Material(
       child: Scaffold(
         resizeToAvoidBottomInset: false,
@@ -24,24 +27,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Container(
             height: screenHeight,
             width: screenWidth,
-            child: SingleChildScrollView(
-              child: Column(
-                children:<Widget>
-                [
-                  SizedBox(height: 10,),
-                  ExitButtonTitle(50,screenWidth,context),
-                  GeneralTitle("General Settings",50,screenWidth),
-                  GeneralSettings(context,50, screenWidth),
-                  SizedBox(height: 20,),
-                  GeneralTitle("Mining History",50,screenWidth),
-                  ApprovedImages(3,"Approved Images",200, screenWidth),
-                  Divider(height: 20, thickness: 2,color: Colors.black,),
-                  ApprovedImages(3,"Pending Images",200, screenWidth),
-                  Divider(height: 20, thickness: 1,),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  child: Column(
+                    children:<Widget>
+                    [
+                      SizedBox(height: 10,),
+                      ExitButtonTitle(50,screenWidth,context),
+                      GeneralTitle("General Settings",50,screenWidth),
+                      GeneralSettings(settingsClass.email,context,50, screenWidth),
+                      SizedBox(height: 20,),
+                      GeneralTitle("Mining History",50,screenWidth),
+                      ApprovedImages(3,"Approved Images",200, screenWidth),
+                      Divider(height: 20, thickness: 2,color: Colors.black,),
+                      ApprovedImages(3,"Pending Images",200, screenWidth),
+                      Divider(height: 20, thickness: 1,),
 
 
-                ],
-              ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  child: Container(
+                    height: screenHeight*0.7,
+                    width: screenWidth,
+                    color: Colors.black.withOpacity(0.1),
+                    child: Center(child: Text("Under construction", style: TextStyle(color: Colors.white,fontSize: 30),)),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -67,7 +83,7 @@ Widget GeneralTitle(String title, double height, double screenWidth)
 
 
 
-Widget GeneralSettings(BuildContext context,double height, double screenWidth)
+Widget GeneralSettings(String email,BuildContext context,double height, double screenWidth)
 {
   return Column(
     children: [
@@ -86,7 +102,7 @@ Widget GeneralSettings(BuildContext context,double height, double screenWidth)
             Padding(
               padding: EdgeInsets.only(right:8.0),
               child: Text(
-                  "morio@gmail.com "
+                  email,
               ),
             ),
           ],

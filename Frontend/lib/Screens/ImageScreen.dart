@@ -5,19 +5,21 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:cosines_for_everyone/Networking/LoginAndSignup.dart';
-import 'package:flutter/foundation.dart';
-import 'package:cosines_for_everyone/CLibs/ffi_bridge.dart';
-import 'package:cosines_for_everyone/Providers/Data.dart';
-import 'package:cosines_for_everyone/Providers/Settings.dart';
-import 'package:ffi/ffi.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_size_getter/file_input.dart';
+import 'package:jpegtran_ffi/jpegtran_ffi.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import '../Networking/LoginAndSignup.dart';
+import '../Providers/Settings.dart';
 import 'HomeScreen.dart';
-import 'package:flutter/painting.dart';
+import 'package:image_downloader/image_downloader.dart';
+import 'package:image_size_getter/image_size_getter.dart' as Getsize;
+import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
+
+
 
 
 class ImageScreen extends StatefulWidget {
@@ -29,158 +31,296 @@ class ImageScreen extends StatefulWidget {
 }
 
 class _ImageScreenState extends State<ImageScreen> {
-  double value = 0;
-
-  /*New */
   ImageValueNotifier imageValueNotifier = ImageValueNotifier();
-  List<int> imageWidthHeight = [0,0];
-  int sliderMax = 30;
+  final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
+  double sliderValue = 100;
+  String savedFilePath = "";
+  String imageName = "";
+  int imageHeight = 0;
+  int imageWidth = 0;
+  int imageSize = 0;
+  String bb = " ";
 
-  _setup() async
+  void StartWork() async
   {
-    List<int> _imageWidthHeight = await GetAvailability(widget.jwt);
-    setState(() {
-      imageWidthHeight = _imageWidthHeight;
-    });
-    imageValueNotifier.NetworkFileToImage(widget.jwt);
-    imageValueNotifier.saveFile(_imageWidthHeight,1);
+    var result = await imageValueNotifier.LoadNetworkAsset(widget.jwt);
+    savedFilePath = result.filePath;
+    imageHeight = result.height;
+    imageWidth = result.width;
+    imageName = result.imageID;
+    imageSize = result.fileSize;
+    print("height: ${imageHeight}, width:${imageWidth},size :${imageSize}, location " +
+        savedFilePath);
   }
 
   @override
   void initState() {
     super.initState();
-    _setup();
+    StartWork();
+    //imageValueNotifier.LoadAsset();
   }
+
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final dataClass = Provider.of<Data>(context);
-    void ChangeImage(List<int> _imageWidthHeight, int quantizationLevel) {
-      if(dataClass.availableImages[quantizationLevel] == 0)
-      {
-        print("Saving");
-        imageValueNotifier.saveFile(_imageWidthHeight,quantizationLevel);
-        dataClass.setAvailable(quantizationLevel);
-      }
-      else
-      {
-        imageValueNotifier.loadFile(quantizationLevel);
-        print("Loaded from storage");
-      }
-    }
+    final screenHeight = MediaQuery
+        .of(context)
+        .size
+        .height;
+    final screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
+    final settingsClass = Provider.of<Settings>(context);
     return Scaffold(
       body: Material(
         child: Container(
           height: screenHeight,
           width: screenWidth,
+          color: Colors.white,
           child: Column(
-            children:<Widget>[
+            children: <Widget>[
               SizedBox(height: 60,),
               GestureDetector(
-                  onTap: ()
-                  {
-                    dataClass.setQuantization(1);
-                  },
-                  child: ExitButtonResetButton(50, screenWidth,context)),
-              ValueListenableBuilder<String?>(
-                valueListenable: imageValueNotifier,
-                  builder: (BuildContext context, String ? result, Widget? child) {
-                    return Container(
+                  onTap: () {},
+                  child: ExitButtonResetButton(50, screenWidth, context)),
+              ValueListenableBuilder<Uint8List?>(
+                  valueListenable: imageValueNotifier,
+                  builder: (BuildContext context, Uint8List? result,
+                      Widget? child) {
+                    return (result == null) ?
+                    Container(
+                      height: screenHeight / 2,
                       width: screenWidth,
-                      height: screenHeight/2,
-                      child: (result == null) ?
-                      CircularProgressIndicator()
-                          :
-                      Image.file(File(result),key: ValueKey(Random().nextInt(100)),),
-                      );
-                  },
-              ),
-              SizedBox(height: 30,),
-              SizedBox(height: 30,),
-              Slider(
-                thumbColor: Color(0xffe46b10),
-                  activeColor: Color(0xfffbb448),
-                  inactiveColor: Colors.grey,
-                  value: dataClass.quantizationLevel.toDouble(),
-                  min: 1,
-                  max: sliderMax.toDouble(),
-                  divisions:sliderMax,
-                  onChanged: (value)
-                  {
-                    dataClass.setQuantization(value);
-                    ChangeImage(imageWidthHeight, dataClass.quantizationLevel);
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                              child: CircularProgressIndicator()),
+                          Center(child: Text(
+                            "Loading Image", style: TextStyle(fontSize: 30),))
+                        ],
+                      ),
+                    )
+                        :
+                    Stack(
+                      children: <Widget>[
+                        Container(
+                          height: (imageHeight > screenHeight) ? screenHeight *
+                              0.8 : imageHeight.toDouble(),
+                          width: (imageWidth > screenWidth)
+                              ? screenWidth
+                              : imageWidth.toDouble(),
+                          child: Image.memory(result),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          child: Container(
+                            width: screenWidth,
+                            color: Colors.white.withOpacity(0.3),
+                            child: Column(
+                              children: <Widget>[
+                                Slider(
+                                    min: 1,
+                                    max: 100,
+                                    divisions: 10,
+                                    value: sliderValue,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        sliderValue = value;
+                                      });
+                                    },
+                                    onChangeEnd: (value) {
+                                      print(sliderValue);
+                                      //print("Here $savedFilePath");
+                                      imageValueNotifier.ChangeQuality(
+                                          savedFilePath, sliderValue.toInt());
+                                    }
+                                ),
+                                SizedBox(height: 30),
+                                OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: Size(screenWidth / 2, 50),
+                                    primary: Color(0xffe46b10),
+                                    side: BorderSide(
+                                        width: 3, color: Color(0xffe46b10)),
+                                  ),
+                                  onPressed: () {
+                                    imageValueNotifier.SubmitThenNewImage(sliderValue,settingsClass.email,imageName,widget.jwt);
+                                  },
+                                  child: Text("Submit"),
+                                )
+                              ],
+                            ),
+                          ),
+                        )
+                      ],
+                    );
                   }
               ),
-              SizedBox(height: 30),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: Size(screenWidth/2,50),
-                  primary: Color(0xffe46b10),
-                  side: BorderSide(width: 3, color:Color(0xffe46b10)),
-                ),
-                onPressed: ()
-                {
-                  imageValueNotifier.ClearCache();
-                  _setup();
-                  for(int i = 0; i < sliderMax; i++)
-                  {
-                    dataClass.setUnAvailable(i);
-                  }
-                  dataClass.setQuantization(1);
-                  dataClass.setUnAvailable(1);
-                },
-                child: Text("Submit"),
-              )
             ],
           ),
         ),
       ),
     );
   }
-}
 
-
-Widget ExitButtonResetButton(double arrowHeight, double screenWidth, BuildContext context)
-{
-  return Container(
-    padding: EdgeInsets.only(left: 20,bottom: 20),
-    height: arrowHeight,
-    width: screenWidth,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: ()
-          {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
-          },
-          child: Row(
-            children:<Widget>[
+  Widget ExitButtonResetButton(double arrowHeight, double screenWidth,
+      BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(left: 20, bottom: 20),
+      height: arrowHeight,
+      width: screenWidth,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => HomeScreen()));
+            },
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  Icons.arrow_back_ios,
+                  color: Color(0xffe46b10),
+                ),
+                Text("Exit",
+                  style: TextStyle(color: Color(0xffe46b10), fontSize: 20),),
+              ],
+            ),
+          ),
+          Row(
+            children: <Widget>[
               Icon(
-                Icons.arrow_back_ios,
+                Icons.refresh,
                 color: Color(0xffe46b10),
               ),
-              Text("Exit",style: TextStyle(color: Color(0xffe46b10),fontSize: 20),),
+              GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      sliderValue = 100;
+                    });
+                    imageValueNotifier.ChangeQuality(
+                        savedFilePath, sliderValue.toInt());
+                  },
+                  child: Text("Reset",
+                    style: TextStyle(color: Color(0xffe46b10), fontSize: 20),)),
+              SizedBox(width: 15,),
             ],
           ),
-        ),
-        Row(
-          children:<Widget>[
-            Icon(
-              Icons.refresh,
-              color: Color(0xffe46b10),
-            ),
-            Text("Reset",style: TextStyle(color: Color(0xffe46b10),fontSize: 20),),
-            SizedBox(width: 15,),
-          ],
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
+
+class ImageSize
+{
+    final int height;
+    final int width;
+    final int fileSize;
+    final String filePath;
+    final String imageID;
+    ImageSize(this.height,this.width,this.fileSize, this.filePath, this.imageID);
+}
+
+class ImageValueNotifier extends ValueNotifier<Uint8List?>
+{
+  ImageValueNotifier() : super(null);
+  late Uint8List initial;
+
+  void CreateVideoImage
+
+  void SubmitThenNewImage(double sliderValue, String email, String imageID, String jwt) async
+  {
+    var result = await SubmitWork(sliderValue, email, imageID, jwt);
+    print(imageID);
+    if(result == 200)
+      {
+        LoadNetworkAsset(jwt);
+      }
+    else
+      {
+
+      }
+
+  }
+
+  Future<ImageSize> LoadNetworkAsset(String jwt) async
+  {
+    try {
+      // Saved with this method.
+      var result = await GetWorkurl(jwt);
+      if(result == "400")
+        {
+          return ImageSize(0,0, 0, " ", " ");
+        }
+
+      var parsed = json.decode(result);
+      String downloadPath = parsed['address'];
+      var imageId = await ImageDownloader.downloadImage(downloadPath);
+      if (imageId == null) {
+        return ImageSize(0, 0,0, " ", " ");
+      }
+      var fileName = await ImageDownloader.findName(imageId);
+      var filePath = await ImageDownloader.findPath(imageId);
+      var mimeType = await ImageDownloader.findMimeType(imageId);
+
+      File file = File(filePath!);
+      var fileSize = file.lengthSync();
+      if(file.existsSync())
+      {
+        final size = Getsize.ImageSizeGetter.getSize(FileInput(file));
+        Uint8List bytes = file.readAsBytesSync();
+        value = bytes;
+        return ImageSize(size.height, size.width,bytes.length, filePath, parsed['fileName']);;
+      }
+    } on PlatformException catch (error) {
+      print(error);
+      return ImageSize(0, 0,0, " ", " ");
+    }
+    return ImageSize(0, 0,0," ", " ");
+  }
+  void LoadAsset() async
+  {
+    String asset = "assets/user3.jpeg";
+    var startImage = rootBundle.load(asset);
+    startImage.then((result)
+    {
+      value = result.buffer.asUint8List();
+    });
+  }
+
+  void ChangeQuality(String filePath,int quality)
+  {
+    var file = File(filePath);
+    print(filePath);
+    if(file.existsSync())
+      {
+        Uint8List bytes = file.readAsBytesSync();
+        var transformer = JpegTransformer(bytes);
+        try
+        {
+          print("Here");
+          value = transformer.recompress(quality: quality, preserveEXIF: true);
+        }
+        catch(error)
+        {
+          print("Error: $error");
+        }
+        finally
+        {
+          transformer.dispose();
+        }
+      }
+  }
+}
+
+
+
 
 Widget ImageContainer(double height, double screenWidth)
 {
@@ -200,84 +340,6 @@ Widget SliderTwo(double arrowHeight, double screenWidth)
   );
 }
 
-class ImageValueNotifier extends ValueNotifier<String?> {
-  ImageValueNotifier() : super(null);
-
-  late String initial;
-
-  void NetworkFileToImage(String jwt)async
-  {
-    var response = await GetWork(jwt);
-    final FFIBridge _ffiBridge = FFIBridge();
-    if(response.length != 1)
-    {
-      String filePath = await getNetworkPath();
-      File file = File(filePath);
-      await file.writeAsBytes(response);
-      print("Downloaded!");
-      String bitmapPath = await getInitialPath(0,1);
-      String pgmPath = await getInitialPath(1,1);
-      if(file.existsSync())
-      {
-        int result = _ffiBridge.decompressFile(bitmapPath, pgmPath, filePath);
-        if(result == 1)
-          {
-            value = bitmapPath;
-          }
-      }
-    }
-    else
-      {
-        print("Failing Here");
-      }
-  }
-
-  void reset()
-  {
-    value = initial;
-  }
-
-  void ClearCache()async
-  {
-    imageCache!.clear();
-    for(int i = 0; i < 11; i++)
-      {
-        String filePath = await getFilePath(i);
-        File file = File(filePath);
-        if(file.existsSync())
-        {
-          print("Deleted: $i");
-          file.delete();
-        }
-      }
-  }
-
-  void loadFile(int quantization) async
-  {
-    String filePath = await getFilePath(quantization);
-    File file = File(filePath);
-    if(file.existsSync())
-    {
-      value = filePath;
-      initial = value!;
-    }
-  }
-
-  void saveFile(List<int> widthHeight,int quantization) async
-  {
-    String bitmapPath = await getInitialPath(0,quantization);
-    String pgmPath = await getInitialPath(1,1);
-    final FFIBridge _ffiBridge2 = FFIBridge();
-    int quantizationLevel = quantization;
-    Pointer<Int32> XY = calloc<Int32>(2);
-    XY[0] = widthHeight[0];
-    XY[1] = widthHeight[1];
-    int result = _ffiBridge2.quantizeFile(pgmPath,bitmapPath, XY,quantizationLevel);
-    print("Trying to save file :" + result.toString());
-    calloc.free(XY);
-    value = bitmapPath;
-  }
-}
 
 
 

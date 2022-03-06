@@ -1,16 +1,15 @@
 // ignore_for_file: use_key_in_widget_constructors, file_names, sized_box_for_whitespace, prefer_const_constructors, prefer_const_literals_to_create_immutables, non_constant_identifier_names, prefer_final_fields
 
 import 'dart:convert';
-
-import 'package:cosines_for_everyone/ClipPaths/HomeClipContainer.dart';
-import 'package:cosines_for_everyone/Networking/LoginAndSignup.dart';
-import 'package:cosines_for_everyone/Providers/Settings.dart';
-import 'package:cosines_for_everyone/SharedWidgets/SharedTextWidgets.dart';
 import 'package:country_list_pick/country_list_pick.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:version2/ClipPaths/HomeClipContainer.dart';
+import 'package:version2/Networking/LoginAndSignup.dart';
+import 'package:version2/Providers/Settings.dart';
+import 'package:version2/SharedWidgets/SharedTextWidgets.dart';
 
 import 'HomeScreen.dart';
 import 'LoginScreen.dart';

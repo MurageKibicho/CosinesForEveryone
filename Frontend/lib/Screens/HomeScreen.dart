@@ -2,16 +2,17 @@
 
 import 'dart:io';
 
-import 'package:cosines_for_everyone/Providers/Settings.dart';
-import 'package:cosines_for_everyone/Screens/ImageScreen.dart';
-import 'package:cosines_for_everyone/Screens/SettingsScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:version2/Providers/Settings.dart';
+import 'ImageScreen.dart';
 import 'LoginScreen.dart';
+import 'SettingsScreen.dart';
 
 class HomeScreen extends StatelessWidget {
   @override
@@ -37,6 +38,7 @@ class _HomeShowcaseState extends State<HomeShowcase> {
   GlobalKey settingsKey = GlobalKey();
   GlobalKey accountKey = GlobalKey();
   GlobalKey signOutKey = GlobalKey();
+  bool showCaseDisplay = true;
 
   //IOS permissions
   Permission photoPermission = Permission.photos;
@@ -60,6 +62,43 @@ class _HomeShowcaseState extends State<HomeShowcase> {
       print(_permissionStatus);
     });
   }
+
+  void CheckShowcase()async
+  {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if(prefs.containsKey("showcaseDisplay"))
+      {
+        final result = await prefs.getBool('showcaseDisplay');
+        //print("Yes , set to ${showCaseDisplay}");
+        setState(() {
+          showCaseDisplay = result!;
+        });
+        print("Yes , set to ${showCaseDisplay}");
+      }
+    else
+      {
+        prefs.setBool('showcaseDisplay', true);
+        setState(() {
+          showCaseDisplay = true;
+        });
+        print("No , set to ${showCaseDisplay}");
+      }
+    WidgetsBinding.instance!.addPostFrameCallback((timeStamp)
+    {
+      print("showCaseDisplay : ${showCaseDisplay}");
+      if(showCaseDisplay == true)
+      {
+        ShowCaseWidget.of(context)!.startShowCase([signOutKey,settingsKey,accountKey,getWorkKey]);
+        setState(() {
+          showCaseDisplay = false;
+        });
+        prefs.setBool('showcaseDisplay', false);
+      }
+    });
+
+  }
+
+
 
   void CheckPermissions() async
   {
@@ -89,12 +128,8 @@ class _HomeShowcaseState extends State<HomeShowcase> {
           AskPermission(storagePermission,_storageStatus).then((value){
             AskPermission(externalStoragePermission,_externalStorageStatus);
           });
-
         }
-    WidgetsBinding.instance!.addPostFrameCallback((timeStamp)
-    {
-      ShowCaseWidget.of(context)!.startShowCase([signOutKey,settingsKey,accountKey,getWorkKey]);
-    });
+    CheckShowcase();
     super.initState();
   }
 
@@ -118,7 +153,7 @@ class _HomeShowcaseState extends State<HomeShowcase> {
                 Showcase(
                     key:accountKey,
                     description: "Check your current balance and your account number",
-                    child: AccountSection(300.h,screenWidth)),
+                    child: AccountSection(settingsClass.accountBalance, settingsClass.accountNumber,300.h,screenWidth)),
                 SizedBox(height: 1.h,),
                 Showcase(
                     key: getWorkKey,
@@ -146,7 +181,7 @@ class _HomeShowcaseState extends State<HomeShowcase> {
 
 Widget GetWorkButton(BuildContext context, String jwt)
 {
-  print("HomeScreen: ${jwt}");
+  //print("HomeScreen: ${jwt}");
   return OutlinedButton(
     style: OutlinedButton.styleFrom(
       minimumSize: Size(280.w,100.h),
@@ -155,7 +190,7 @@ Widget GetWorkButton(BuildContext context, String jwt)
     ),
       onPressed: ()
       {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => ImageScreen(jwt: jwt)));
+        Navigator.push(context, MaterialPageRoute(builder: (context) => ImageScreen(jwt: jwt,)));
       },
       child: Text("Start work"),
   );
@@ -222,7 +257,7 @@ Widget TitleSection(double height,double screenWidth)
     ),
   );
 }
-Widget AccountSection(double height, double screenWidth)
+Widget AccountSection(String currentBalance, String accountNumber, double height, double screenWidth)
 {
   return Container(
     height: height,
@@ -233,12 +268,11 @@ Widget AccountSection(double height, double screenWidth)
       children:<Widget>[
         SizedBox(height: 1.0.h,),
         Center(
-          child: Text("\u00242500.00",style: GoogleFonts.mPlusRounded1c(fontWeight: FontWeight.bold, fontSize: 40.sp)),
+          child: Text("\u0024${currentBalance}.00",style: GoogleFonts.mPlusRounded1c(fontWeight: FontWeight.bold, fontSize: 40.sp)),
         ),
         Center(child: Text("Balance",style: TextStyle(color: Color(0xffe46b10),fontSize: 30.0.sp),),),
-        SizedBox(height: 3.h,),
         SizedBox(height: 20.h,),
-        Center(child: Text("cdshbcyeyr8723t7tr2",style: TextStyle(fontSize: 30.0.sp))),
+        Center(child: Text("${accountNumber}",style: TextStyle(fontSize: 20.0.sp))),
         Center(child: Text("Account number",style: TextStyle(color: Color(0xffe46b10),fontSize: 30.0.sp),),),
       ],
     ),
